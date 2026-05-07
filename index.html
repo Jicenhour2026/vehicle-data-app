@@ -2,40 +2,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Vehicle Lookup</title>
+  <title>VIN Maintenance & Tire Lookup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 </head>
 <body>
 
-<h1>Vehicle Lookup</h1>
+<h2>Vehicle Maintenance & Tire Lookup</h2>
 
-<input id="vin" placeholder="Enter VIN">
-<button id="btn">Search</button>
+<input id="vin" placeholder="Enter VIN" style="width:100%;padding:10px;">
+<button id="search" style="width:100%;padding:10px;margin-top:10px;">
+  Lookup Vehicle
+</button>
 
-<pre id="out">Waiting for search…</pre>
+<pre id="output">Enter a VIN and click Lookup.</pre>
 
 <script>
-document.getElementById("btn").onclick = async function () {
-  const vinInput = document.getElementById("vin");
-  const output = document.getElementById("out");
+document.getElementById("search").onclick = async () => {
+  const vin = document.getElementById("vin").value.trim();
+  const out = document.getElementById("output");
 
-  const vin = vinInput.value.trim();
   if (!vin) {
-    output.textContent = "Please enter a VIN.";
+    out.textContent = "Please enter a VIN.";
     return;
   }
 
+  out.textContent = "Looking up vehicle...";
+
   try {
-    output.textContent = "Searching…";
-
     const res = await fetch(`/api/lookup?vin=${vin}`);
-    const data = await res.json();
+    const text = await res.text();
 
-    output.textContent = JSON.stringify(data, null, 2);
+    try {
+      out.textContent = JSON.stringify(JSON.parse(text), null, 2);
+    } catch {
+      out.textContent = "Server response:\n" + text;
+    }
   } catch (e) {
-    output.textContent = "Frontend error: " + e.message;
+    out.textContent = "Network error: " + e.message;
   }
 };
 </script>
 
 </body>
 </html>
+``
