@@ -1,7 +1,7 @@
 
 import axios from "axios";
 
-/* ---------- VIN Decode (NHTSA) ---------- */
+/* ---------- VIN Decode ---------- */
 async function decodeVIN(vin) {
   const res = await axios.get(
     `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`
@@ -16,7 +16,7 @@ async function decodeVIN(vin) {
   };
 }
 
-/* ---------- Maintenance Schedule ---------- */
+/* ---------- Maintenance ---------- */
 async function getMaintenanceSchedule(vehicle) {
   const res = await axios.get(
     "https://api.vehicledatabases.com/maintenance",
@@ -36,7 +36,7 @@ async function getMaintenanceSchedule(vehicle) {
   }));
 }
 
-/* ---------- Tire & Wheel Specs ---------- */
+/* ---------- Tires ---------- */
 async function getTireSpecs(vehicle) {
   const res = await axios.get(
     "https://api.411vehicledata.com/v1/tires",
@@ -57,7 +57,7 @@ async function getTireSpecs(vehicle) {
   };
 }
 
-/* ---------- Oil & Torque Specs (NEW) ---------- */
+/* ---------- Oil & Torque ---------- */
 async function getOilAndTorque(vehicle) {
   const res = await axios.get(
     "https://api.openlaborproject.com/v1/fluids",
@@ -86,18 +86,21 @@ async function getOilAndTorque(vehicle) {
 /* ---------- Main Handler ---------- */
 export default async function handler(req, res) {
   try {
-    const { vin } = req.query;
-    if (!vin) {
-      return res.status(400).json({ error: "VIN required" });
+    const { vin, year, make, model } = req.query;
+
+    let vehicle;
+
+    if (vin) {
+      vehicle = await decodeVIN(vin);
+    } else if (year && make && model) {
+      vehicle = { year, make, model };
+    } else {
+      return res.status(400).json({
+        error: "Provide either VIN or Year, Make, and Model"
+      });
     }
 
-    const vehicle = await decodeVIN(vin);
-
-    const [
-      maintenance,
-      tires,
-      oilAndTorque
-    ] = await Promise.all([
+    const [maintenance, tires, oilAndTorque] = await Promise.all([
       getMaintenanceSchedule(vehicle),
       getTireSpecs(vehicle),
       getOilAndTorque(vehicle)
@@ -113,7 +116,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     res.status(500).json({
-      error: "Vehicle lookup failed",
+      error: "Lookup failed",
       detail: err.message
     });
   }
