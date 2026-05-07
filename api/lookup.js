@@ -1,6 +1,7 @@
 
 import axios from "axios";
 
+/* ---------------- VIN Decode ---------------- */
 async function decodeVIN(vin) {
   const res = await axios.get(
     `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`
@@ -15,13 +16,12 @@ async function decodeVIN(vin) {
   };
 }
 
+/* -------- Maintenance Schedule API -------- */
 async function getMaintenanceSchedule(vehicle) {
-  const response = await axios.get(
+  const res = await axios.get(
     "https://api.vehicledatabases.com/maintenance",
     {
-      headers: {
-        "X-API-Key": process.env.MAINTENANCE_API_KEY
-      },
+      headers: { "X-API-Key": process.env.MAINTENANCE_API_KEY },
       params: {
         year: vehicle.year,
         make: vehicle.make,
@@ -30,12 +30,34 @@ async function getMaintenanceSchedule(vehicle) {
     }
   );
 
-  return response.data.schedules.map(item => ({
-    interval: `${item.interval_miles} miles`,
-    services: item.services
+  return res.data.schedules.map(s => ({
+    interval: `${s.interval_miles} miles`,
+    services: s.services
   }));
 }
 
+/* -------- Tire & Wheel Spec API (NEW) -------- */
+async function getTireSpecs(vehicle) {
+  const res = await axios.get(
+    "https://api.411vehicledata.com/v1/tires",
+    {
+      headers: { "X-API-Key": process.env.TIRE_API_KEY },
+      params: {
+        year: vehicle.year,
+        make: vehicle.make,
+        model: vehicle.model
+      }
+    }
+  );
+
+  return {
+    front: res.data.front_tire,
+    rear: res.data.rear_tire,
+    wheelDiameter: res.data.wheel_diameter || null
+  };
+}
+
+/* ---------------- Main Handler ---------------- */
 export default async function handler(req, res) {
   try {
     const { vin } = req.query;
@@ -44,16 +66,21 @@ export default async function handler(req, res) {
     }
 
     const vehicle = await decodeVIN(vin);
-    const maintenance = await getMaintenanceSchedule(vehicle);
+
+    const [maintenance, tires] = await Promise.all([
+      getMaintenanceSchedule(vehicle),
+      getTireSpecs(vehicle)
+    ]);
 
     res.status(200).json({
       vehicle,
-      maintenance
+      maintenance,
+      tires
     });
 
   } catch (err) {
     res.status(500).json({
-      error: "Maintenance lookup failed",
+      error: "Vehicle lookup failed",
       detail: err.message
     });
   }
