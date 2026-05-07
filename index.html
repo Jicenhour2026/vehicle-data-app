@@ -4,24 +4,46 @@
 <head>
   <title>Vehicle Maintenance Lookup</title>
   <style>
-    body { font-family: Arial; max-width: 600px; margin: 40px auto; }
-    input, button { padding: 8px; width: 100%; margin-top: 10px; }
-    pre { background: #f4f4f4; padding: 10px; }
+    body { font-family: Arial; max-width: 700px; margin: 40px auto; }
+    input, button { padding: 8px; width: 100%; margin-top: 8px; }
+    h3 { margin-top: 30px; }
+    pre { background: #f4f4f4; padding: 12px; }
   </style>
 </head>
 <body>
 
 <h2>Vehicle Lookup</h2>
 
+<h3>Search by VIN</h3>
 <input id="vin" placeholder="Enter VIN">
-<button onclick="lookup()">Search</button>
+<button onclick="searchVIN()">Search VIN</button>
+
+<h3>OR Search by Year / Make / Model</h3>
+<input id="year" placeholder="Year (e.g. 2021)">
+<input id="make" placeholder="Make (e.g. Toyota)">
+<input id="model" placeholder="Model (e.g. Camry)">
+<button onclick="searchYMM()">Search Y/M/M</button>
 
 <pre id="output"></pre>
 
 <script>
-async function lookup() {
+async function searchVIN() {
   const vin = document.getElementById("vin").value;
   const res = await fetch(`/api/lookup?vin=${vin}`);
+  display(res);
+}
+
+async function searchYMM() {
+  const year = document.getElementById("year").value;
+  const make = document.getElementById("make").value;
+  const model = document.getElementById("model").value;
+
+  const url = `/api/lookup?year=${year}&make=${make}&model=${model}`;
+  const res = await fetch(url);
+  display(res);
+}
+
+async function display(res) {
   const data = await res.json();
   document.getElementById("output").textContent =
     JSON.stringify(data, null, 2);
