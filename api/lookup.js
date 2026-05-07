@@ -1,7 +1,7 @@
 
 import axios from "axios";
 
-/* ---------------- VIN Decode ---------------- */
+/* ---------- VIN Decode (NHTSA) ---------- */
 async function decodeVIN(vin) {
   const res = await axios.get(
     `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`
@@ -16,7 +16,7 @@ async function decodeVIN(vin) {
   };
 }
 
-/* -------- Maintenance Schedule API -------- */
+/* ---------- Maintenance Schedule ---------- */
 async function getMaintenanceSchedule(vehicle) {
   const res = await axios.get(
     "https://api.vehicledatabases.com/maintenance",
@@ -36,7 +36,7 @@ async function getMaintenanceSchedule(vehicle) {
   }));
 }
 
-/* -------- Tire & Wheel Spec API (NEW) -------- */
+/* ---------- Tire & Wheel Specs ---------- */
 async function getTireSpecs(vehicle) {
   const res = await axios.get(
     "https://api.411vehicledata.com/v1/tires",
@@ -57,7 +57,33 @@ async function getTireSpecs(vehicle) {
   };
 }
 
-/* ---------------- Main Handler ---------------- */
+/* ---------- Oil & Torque Specs (NEW) ---------- */
+async function getOilAndTorque(vehicle) {
+  const res = await axios.get(
+    "https://api.openlaborproject.com/v1/fluids",
+    {
+      headers: { "X-API-Key": process.env.OIL_TORQUE_API_KEY },
+      params: {
+        year: vehicle.year,
+        make: vehicle.make,
+        model: vehicle.model,
+        engine: vehicle.engine
+      }
+    }
+  );
+
+  return {
+    oil: {
+      type: res.data.oil_viscosity,
+      capacity: res.data.oil_capacity
+    },
+    torque: {
+      lugNuts: res.data.lug_nut_torque
+    }
+  };
+}
+
+/* ---------- Main Handler ---------- */
 export default async function handler(req, res) {
   try {
     const { vin } = req.query;
@@ -67,15 +93,22 @@ export default async function handler(req, res) {
 
     const vehicle = await decodeVIN(vin);
 
-    const [maintenance, tires] = await Promise.all([
+    const [
+      maintenance,
+      tires,
+      oilAndTorque
+    ] = await Promise.all([
       getMaintenanceSchedule(vehicle),
-      getTireSpecs(vehicle)
+      getTireSpecs(vehicle),
+      getOilAndTorque(vehicle)
     ]);
 
     res.status(200).json({
       vehicle,
       maintenance,
-      tires
+      tires,
+      oil: oilAndTorque.oil,
+      torque: oilAndTorque.torque
     });
 
   } catch (err) {
