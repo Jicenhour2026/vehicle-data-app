@@ -3,50 +3,137 @@
 <html>
 <head>
   <title>Vehicle Maintenance Lookup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: Arial; max-width: 700px; margin: 40px auto; }
-    input, button { padding: 8px; width: 100%; margin-top: 8px; }
-    h3 { margin-top: 30px; }
-    pre { background: #f4f4f4; padding: 12px; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 16px;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .muted {
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
   </style>
 </head>
+
 <body>
 
-<h2>Vehicle Lookup</h2>
+<h1>Vehicle Maintenance Lookup</h1>
 
-<h3>Search by VIN</h3>
-<input id="vin" placeholder="Enter VIN">
-<button onclick="searchVIN()">Search VIN</button>
+<div class="card">
+  <label for="vin">Search by VIN</label>
+  <input id="vin" placeholder="Enter VIN (e.g. 1FTER4F...)">
+  <button onclick="lookup()">Search</button>
+</div>
 
-<h3>OR Search by Year / Make / Model</h3>
-<input id="year" placeholder="Year (e.g. 2021)">
-<input id="make" placeholder="Make (e.g. Toyota)">
-<input id="model" placeholder="Model (e.g. Camry)">
-<button onclick="searchYMM()">Search Y/M/M</button>
-
-<pre id="output"></pre>
+<div id="results"></div>
 
 <script>
-async function searchVIN() {
-  const vin = document.getElementById("vin").value;
+async function lookup() {
+  const vin = document.getElementById("vin").value.trim();
+  if (!vin) return alert("Please enter a VIN.");
+
   const res = await fetch(`/api/lookup?vin=${vin}`);
-  display(res);
-}
-
-async function searchYMM() {
-  const year = document.getElementById("year").value;
-  const make = document.getElementById("make").value;
-  const model = document.getElementById("model").value;
-
-  const url = `/api/lookup?year=${year}&make=${make}&model=${model}`;
-  const res = await fetch(url);
-  display(res);
-}
-
-async function display(res) {
   const data = await res.json();
-  document.getElementById("output").textContent =
-    JSON.stringify(data, null, 2);
+
+  render(data);
+}
+
+function render(data) {
+  const r = document.getElementById("results");
+
+  if (data.error) {
+    r.innerHTML = `<div class="card">${data.error}</div>`;
+    return;
+  }
+
+  const v = data.vehicle;
+
+  r.innerHTML = `
+    <div class="card">
+      <div class="section-title">🚗 Vehicle</div>
+      <div><strong>${v.year} ${v.make} ${v.model}</strong></div>
+      <div class="muted">${v.bodyClass || ""}</div>
+    </div>
+
+    ${data.maintenance ? `
+    <div class="card">
+      <div class="section-title">🔧 Maintenance</div>
+      <ul>
+        ${data.maintenance.map(m =>
+          `<li><strong>${m.interval}</strong> – ${m.services.join(", ")}</li>`
+        ).join("")}
+      </ul>
+    </div>` : ""}
+
+    ${data.tires ? `
+    <div class="card">
+      <div class="section-title">🛞 Tires</div>
+      <div>Front: ${data.tires.front}</div>
+      <div>Rear: ${data.tires.rear}</div>
+    </div>` : ""}
+
+    ${(data.oil || data.torque) ? `
+    <div class="card">
+      <div class="section-title">🛢 Oil & Torque</div>
+      ${data.oil ? `<div>Oil: ${data.oil.type} (${data.oil.capacity})</div>` : ""}
+      ${data.torque ? `<div>Lug Torque: ${data.torque.lugNuts}</div>` : ""}
+    </div>` : ""}
+  `;
 }
 </script>
 
