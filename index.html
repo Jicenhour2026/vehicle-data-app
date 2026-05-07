@@ -1,168 +1,48 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Vehicle Maintenance & Tire Lookup</title>
+  <title>VIN Maintenance & Tire Lookup</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
-      background: #f3f4f6;
-      margin: 0;
-      padding: 24px;
-      color: #111827;
-    }
-
-    .container {
-      max-width: 700px;
-      margin: auto;
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .search-box {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      margin-bottom: 20px;
-    }
-
-    input {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      margin-top: 8px;
-      border-radius: 6px;
-      border: 1px solid #d1d5db;
-    }
-
-    button {
-      width: 100%;
-      margin-top: 12px;
-      padding: 12px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: none;
-      background: #2563eb;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-
-    .card {
-      background: white;
-      padding: 18px;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-      margin-bottom: 16px;
-    }
-
-    .section-title {
-      font-size: 18px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    ul {
-      padding-left: 18px;
-      margin: 8px 0 0 0;
-    }
-
-    .muted {
-      color: #6b7280;
-      font-size: 14px;
-    }
-
-    .error {
-      background: #fee2e2;
-      color: #991b1b;
-      padding: 12px;
-      border-radius: 8px;
-    }
-  </style>
 </head>
-
 <body>
-  <div class="container">
-    <h1>🚗 Vehicle Maintenance & Tire Lookup</h1>
 
-    <div class="search-box">
-      <label for="vin"><strong>Enter VIN</strong></label>
-      <input id="vin" placeholder="e.g. 1FTER4FHXLLA12613" />
-      <button id="search">Lookup Vehicle</button>
-    </div>
+<h2>Vehicle Maintenance & Tire Lookup</h2>
 
-    <div id="output"></div>
-  </div>
+<input id="vin" placeholder="Enter VIN" style="width:100%;padding:10px;">
+<button id="search" style="width:100%;padding:10px;margin-top:10px;">
+  Lookup Vehicle
+</button>
 
-  <script>
-    document.getElementById("search").onclick = async () => {
-      const vin = document.getElementById("vin").value.trim();
-      const out = document.getElementById("output");
+<pre id="output">Enter a VIN and click Lookup.</pre>
 
-      if (!vin) {
-        out.innerHTML = "<div class='error'>Please enter a VIN.</div>";
-        return;
-      }
+<script>
+document.getElementById("search").onclick = async () => {
+  const vin = document.getElementById("vin").value.trim();
+  const out = document.getElementById("output");
 
-      out.innerHTML = "<div class='card'>Looking up vehicle…</div>";
+  if (!vin) {
+    out.textContent = "Please enter a VIN.";
+    return;
+  }
 
-      try {
-        const res = await fetch(`/api/lookup?vin=${vin}`);
-        const text = await res.text();
+  out.textContent = "Looking up vehicle...";
 
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          out.innerHTML = "<div class='error'>Server error.</div>";
-          return;
-        }
+  try {
+    const res = await fetch(`/api/lookup?vin=${vin}`);
+    const text = await res.text();
 
-        if (data.error) {
-          out.innerHTML = `<div class="error">${data.error}</div>`;
-          return;
-        }
+    try {
+      out.textContent = JSON.stringify(JSON.parse(text), null, 2);
+    } catch {
+      out.textContent = "Server response:\n" + text;
+    }
+  } catch (e) {
+    out.textContent = "Network error: " + e.message;
+  }
+};
+</script>
 
-        const v = data.vehicle;
-
-        out.innerHTML = `
-          <div class="card">
-            <div class="section-title">🚘 Vehicle</div>
-            <strong>${v.year} ${v.make} ${v.model}</strong>
-            <div class="muted">${v.body || ""}</div>
-          </div>
-
-          <div class="card">
-            <div class="section-title">🔧 Maintenance</div>
-            <ul>
-              ${data.maintenance.map(item => `<li>${item}</li>`).join("")}
-            </ul>
-          </div>
-
-          <div class="card">
-            <div class="section-title">🛞 Tires</div>
-            <div class="muted">${data.tires.note}</div>
-            <ul>
-              ${data.tires.commonSizes.map(size => `<li>${size}</li>`).join("")}
-            </ul>
-          </div>
-        `;
-      } catch (e) {
-        out.innerHTML = "<div class='error'>Network error.</div>";
-      }
-    };
-  </script>
 </body>
 </html>
+``
