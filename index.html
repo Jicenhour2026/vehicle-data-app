@@ -9,43 +9,32 @@
 <h1>Vehicle Lookup</h1>
 
 <input id="vin" placeholder="Enter VIN">
-<button onclick="lookup()">Search</button>
+<button id="btn">Search</button>
 
-<div id="result"></div>
+<pre id="out">Waiting for search…</pre>
 
 <script>
-async function lookup() {
-  const vin = document.getElementById("vin").value.trim();
+document.getElementById("btn").onclick = async function () {
+  const vinInput = document.getElementById("vin");
+  const output = document.getElementById("out");
+
+  const vin = vinInput.value.trim();
   if (!vin) {
-    alert("Enter a VIN");
+    output.textContent = "Please enter a VIN.";
     return;
   }
 
-  const res = await fetch(`/api/lookup?vin=${vin}`);
-  const data = await res.json();
+  try {
+    output.textContent = "Searching…";
 
-  if (!data.vehicle) {
-    document.getElementById("result").innerHTML =
-      "<p>No vehicle data found.</p>";
-    return;
+    const res = await fetch(`/api/lookup?vin=${vin}`);
+    const data = await res.json();
+
+    output.textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    output.textContent = "Frontend error: " + e.message;
   }
-
-  let html = `
-    <h2>${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</h2>
-    <p>${data.vehicle.bodyClass || ""}</p>
-  `;
-
-  // ✅ Only render maintenance if it exists
-  if (data.maintenance && data.maintenance.length) {
-    html += "<h3>Maintenance</h3><ul>";
-    for (const m of data.maintenance) {
-      html += `<li><strong>${m.interval}</strong>: ${m.services.join(", ")}</li>`;
-    }
-    html += "</ul>";
-  }
-
-  document.getElementById("result").innerHTML = html;
-}
+};
 </script>
 
 </body>
