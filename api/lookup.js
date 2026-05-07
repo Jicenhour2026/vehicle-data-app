@@ -1,6 +1,41 @@
 
 import axios from "axios";
 
+async function decodeVIN(vin) {
+  const res = await axios.get(
+    `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`
+  );
+  const v = res.data.Results[0];
+
+  return {
+    year: v.ModelYear,
+    make: v.Make,
+    model: v.Model,
+    engine: v.EngineModel || null
+  };
+}
+
+async function getMaintenanceSchedule(vehicle) {
+  const response = await axios.get(
+    "https://api.vehicledatabases.com/maintenance",
+    {
+      headers: {
+        "X-API-Key": process.env.MAINTENANCE_API_KEY
+      },
+      params: {
+        year: vehicle.year,
+        make: vehicle.make,
+        model: vehicle.model
+      }
+    }
+  );
+
+  return response.data.schedules.map(item => ({
+    interval: `${item.interval_miles} miles`,
+    services: item.services
+  }));
+}
+
 export default async function handler(req, res) {
   try {
     const { vin } = req.query;
@@ -8,37 +43,18 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "VIN required" });
     }
 
-    // Decode VIN using NHTSA (free)
-    const vinRes = await axios.get(
-      `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`
-    );
-
-    const v = vinRes.data.Results[0];
+    const vehicle = await decodeVIN(vin);
+    const maintenance = await getMaintenanceSchedule(vehicle);
 
     res.status(200).json({
-      vehicle: {
-        year: v.ModelYear,
-        make: v.Make,
-        model: v.Model,
-        engine: v.EngineModel || "Unknown"
-      },
-      maintenance: [
-        { interval: "5,000 miles", service: "Oil & filter change" },
-        { interval: "30,000 miles", service: "Brake inspection" }
-      ],
-      tires: {
-        front: "225/65R17",
-        rear: "225/65R17"
-      },
-      oil: {
-        type: "5W-30",
-        capacity: "5.7 quarts"
-      },
-      wheelTorque: "100 ft-lbs"
+      vehicle,
+      maintenance
     });
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: "Maintenance lookup failed",
+      detail: err.message
+    });
   }
 }
-``
