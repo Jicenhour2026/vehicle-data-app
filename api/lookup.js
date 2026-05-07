@@ -7,7 +7,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "VIN is required" });
     }
 
-    // VIN decode (official US government API)
     const r = await fetch(
       `https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvalues/${vin}?format=json`
     );
@@ -38,6 +37,15 @@ export default async function handler(req, res) {
           "255/70R16",
           "265/65R18"
         ]
+      },
+
+      oil: {
+        type: "5W‑30 (most gasoline engines)",
+        capacity: "5–6 quarts (varies by engine)"
+      },
+
+      wheelTorque: {
+        lugNutTorque: "95–115 ft‑lb (typical for light trucks & SUVs)"
       }
     });
 
@@ -48,3 +56,4 @@ export default async function handler(req, res) {
     });
   }
 }
+``
