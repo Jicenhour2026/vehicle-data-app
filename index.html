@@ -29,12 +29,14 @@
 
     label {
       font-weight: bold;
+      display: block;
+      margin-top: 12px;
     }
 
     input, button {
       width: 100%;
       padding: 10px;
-      margin-top: 8px;
+      margin-top: 6px;
       font-size: 16px;
     }
 
@@ -52,9 +54,6 @@
     }
 
     .section-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
       font-size: 18px;
       margin-bottom: 8px;
     }
@@ -75,21 +74,52 @@
 <h1>Vehicle Maintenance Lookup</h1>
 
 <div class="card">
-  <label for="vin">Search by VIN</label>
+  <div class="section-title">🔍 Search by VIN</div>
+  <label>VIN</label>
   <input id="vin" placeholder="Enter VIN (e.g. 1FTER4F...)">
-  <button onclick="lookup()">Search</button>
+  <button onclick="searchByVIN()">Search VIN</button>
+</div>
+
+<div class="card">
+  <div class="section-title">🔍 OR Search by Year / Make / Model</div>
+
+  <label>Year</label>
+  <input id="year" placeholder="e.g. 2020">
+
+  <label>Make</label>
+  <input id="make" placeholder="e.g. Ford">
+
+  <label>Model</label>
+  <input id="model" placeholder="e.g. Ranger">
+
+  <button onclick="searchByYMM()">Search Year / Make / Model</button>
 </div>
 
 <div id="results"></div>
 
 <script>
-async function lookup() {
+async function searchByVIN() {
   const vin = document.getElementById("vin").value.trim();
   if (!vin) return alert("Please enter a VIN.");
 
   const res = await fetch(`/api/lookup?vin=${vin}`);
   const data = await res.json();
+  render(data);
+}
 
+async function searchByYMM() {
+  const year = document.getElementById("year").value.trim();
+  const make = document.getElementById("make").value.trim();
+  const model = document.getElementById("model").value.trim();
+
+  if (!year || !make || !model) {
+    return alert("Please enter Year, Make, and Model.");
+  }
+
+  const res = await fetch(
+    `/api/lookup?year=${encodeURIComponent(year)}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`
+  );
+  const data = await res.json();
   render(data);
 }
 
@@ -124,18 +154,3 @@ function render(data) {
     <div class="card">
       <div class="section-title">🛞 Tires</div>
       <div>Front: ${data.tires.front}</div>
-      <div>Rear: ${data.tires.rear}</div>
-    </div>` : ""}
-
-    ${(data.oil || data.torque) ? `
-    <div class="card">
-      <div class="section-title">🛢 Oil & Torque</div>
-      ${data.oil ? `<div>Oil: ${data.oil.type} (${data.oil.capacity})</div>` : ""}
-      ${data.torque ? `<div>Lug Torque: ${data.torque.lugNuts}</div>` : ""}
-    </div>` : ""}
-  `;
-}
-</script>
-
-</body>
-</html>
