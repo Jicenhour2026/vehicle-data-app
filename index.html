@@ -2,110 +2,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Vehicle Maintenance Lookup</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
-      margin: 40px auto;
-      padding: 0 16px;
-      background: #f9fafb;
-      color: #111827;
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 24px;
-    }
-
-    .card {
-      background: white;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    }
-
-    label {
-      font-weight: bold;
-    }
-
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 8px;
-      font-size: 16px;
-    }
-
-    button {
-      background: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-top: 12px;
-    }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-
-    .section-title {
-      font-size: 18px;
-      margin-bottom: 8px;
-    }
-
-    .muted {
-      color: #6b7280;
-      font-size: 14px;
-    }
-
-    ul {
-      padding-left: 20px;
-    }
-  </style>
+  <title>Vehicle Lookup</title>
 </head>
-
 <body>
 
-<h1>Vehicle Maintenance Lookup</h1>
+<h1>Vehicle Lookup</h1>
 
-<div class="card">
-  <label for="vin">Search by VIN</label>
-  <input id="vin" placeholder="Enter VIN (e.g. 1FTER4F...)">
-  <button onclick="lookup()">Search</button>
-</div>
+<input id="vin" placeholder="Enter VIN">
+<button onclick="lookup()">Search</button>
 
-<div id="results"></div>
+<div id="result"></div>
 
 <script>
 async function lookup() {
   const vin = document.getElementById("vin").value.trim();
-  if (!vin) return alert("Please enter a VIN.");
-
-  const res = await fetch(`/api/lookup?vin=${vin}`);
-  const data = await res.json();
-  render(data);
-}
-
-function render(data) {
-  const r = document.getElementById("results");
-
-  if (data.error) {
-    r.innerHTML = `<div class="card">${data.error}</div>`;
+  if (!vin) {
+    alert("Enter a VIN");
     return;
   }
 
-  const v = data.vehicle;
+  const res = await fetch(`/api/lookup?vin=${vin}`);
+  const data = await res.json();
 
-  r.innerHTML = `
-    <div class="card">
-      <div class="section-title">🚗 Vehicle</div>
-      <div><strong>${v.year} ${v.make} ${v.model}</strong></div>
-      <div class="muted">${v.bodyClass || ""}</div>
-    </div>
+  if (!data.vehicle) {
+    document.getElementById("result").innerHTML =
+      "<p>No vehicle data found.</p>";
+    return;
+  }
+
+  let html = `
+    <h2>${data.vehicle.year} ${data.vehicle.make} ${data.vehicle.model}</h2>
+    <p>${data.vehicle.bodyClass || ""}</p>
   `;
+
+  // ✅ Only render maintenance if it exists
+  if (data.maintenance && data.maintenance.length) {
+    html += "<h3>Maintenance</h3><ul>";
+    for (const m of data.maintenance) {
+      html += `<li><strong>${m.interval}</strong>: ${m.services.join(", ")}</li>`;
+    }
+    html += "</ul>";
+  }
+
+  document.getElementById("result").innerHTML = html;
 }
 </script>
 
