@@ -1,0 +1,32 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vehicle Maintenance Lookup</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 40px auto; }
+    input, button { padding: 8px; width: 100%; margin-top: 10px; }
+    pre { background: #f4f4f4; padding: 10px; }
+  </style>
+</head>
+<body>
+
+<h2>Vehicle Lookup</h2>
+
+<input id="vin" placeholder="Enter VIN">
+<button onclick="lookup()">Search</button>
+
+<pre id="output"></pre>
+
+<script>
+async function lookup() {
+  const vin = document.getElementById("vin").value;
+  const res = await fetch(`/api/lookup?vin=${vin}`);
+  const data = await res.json();
+  document.getElementById("output").textContent =
+    JSON.stringify(data, null, 2);
+}
+</script>
+
+</body>
+</html>
